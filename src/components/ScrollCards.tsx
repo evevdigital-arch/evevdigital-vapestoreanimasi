@@ -3,7 +3,8 @@ import {
   useScroll,
   useTransform,
   useMotionValueEvent,
-  useSpring,
+  useMotionValue,
+  animate,
   type MotionValue,
 } from 'framer-motion';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
@@ -196,11 +197,17 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
   const targetS1Rot = currentSlot.rotate;
   const targetS1Scale = currentSlot.scale * sizeScale;
 
-  const springConf = { stiffness: 260, damping: 25 };
-  const animS1Cx = useSpring(targetS1Cx, springConf);
-  const animS1Cy = useSpring(targetS1Cy, springConf);
-  const animS1Rot = useSpring(targetS1Rot, springConf);
-  const animS1Scale = useSpring(targetS1Scale, springConf);
+  const animS1Cx = useMotionValue(targetS1Cx);
+  const animS1Cy = useMotionValue(targetS1Cy);
+  const animS1Rot = useMotionValue(targetS1Rot);
+  const animS1Scale = useMotionValue(targetS1Scale);
+
+  useEffect(() => {
+    animate(animS1Cx, targetS1Cx, { type: 'spring', stiffness: 260, damping: 25 });
+    animate(animS1Cy, targetS1Cy, { type: 'spring', stiffness: 260, damping: 25 });
+    animate(animS1Rot, targetS1Rot, { type: 'spring', stiffness: 260, damping: 25 });
+    animate(animS1Scale, targetS1Scale, { type: 'spring', stiffness: 260, damping: 25 });
+  }, [targetS1Cx, targetS1Cy, targetS1Rot, targetS1Scale]);
 
   const stackCx = vp.w / 2, stackCy = vp.h / 2;
   
@@ -260,7 +267,10 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
       <motion.div
         data-card-index={slotIndex}
         style={{ ...base, x, y, rotate, scale, opacity } as any}
-        onClick={() => onCenterCard()}
+        onClick={(e) => {
+          e.preventDefault();
+          onCenterCard();
+        }}
         onPointerEnter={(e) => e.pointerType === 'mouse' && onSetHovered(slotIndex)}
         onPointerLeave={(e) => e.pointerType === 'mouse' && onSetHovered(-1)}
       >
@@ -304,7 +314,10 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
         ease: revealed ? hoverEase : 'easeOut',
       }}
       onAnimationComplete={() => setRevealed(true)}
-      onClick={() => onCenterCard()}
+      onClick={(e) => {
+        e.preventDefault();
+        onCenterCard();
+      }}
       onPointerEnter={(e) => e.pointerType === 'mouse' && onSetHovered(slotIndex)}
       onPointerLeave={(e) => e.pointerType === 'mouse' && onSetHovered(-1)}
     >
