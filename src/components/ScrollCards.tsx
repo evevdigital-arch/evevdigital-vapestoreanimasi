@@ -3,8 +3,7 @@ import {
   useScroll,
   useTransform,
   useMotionValueEvent,
-  useMotionValue,
-  animate,
+  useSpring,
   type MotionValue,
 } from 'framer-motion';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
@@ -197,17 +196,11 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
   const targetS1Rot = currentSlot.rotate;
   const targetS1Scale = currentSlot.scale * sizeScale;
 
-  const animS1Cx = useMotionValue(targetS1Cx);
-  const animS1Cy = useMotionValue(targetS1Cy);
-  const animS1Rot = useMotionValue(targetS1Rot);
-  const animS1Scale = useMotionValue(targetS1Scale);
-
-  useEffect(() => {
-    animate(animS1Cx, targetS1Cx, { type: 'spring', stiffness: 260, damping: 25 });
-    animate(animS1Cy, targetS1Cy, { type: 'spring', stiffness: 260, damping: 25 });
-    animate(animS1Rot, targetS1Rot, { type: 'spring', stiffness: 260, damping: 25 });
-    animate(animS1Scale, targetS1Scale, { type: 'spring', stiffness: 260, damping: 25 });
-  }, [targetS1Cx, targetS1Cy, targetS1Rot, targetS1Scale]);
+  const springConf = { stiffness: 260, damping: 25 };
+  const animS1Cx = useSpring(targetS1Cx, springConf);
+  const animS1Cy = useSpring(targetS1Cy, springConf);
+  const animS1Rot = useSpring(targetS1Rot, springConf);
+  const animS1Scale = useSpring(targetS1Scale, springConf);
 
   const stackCx = vp.w / 2, stackCy = vp.h / 2;
   
@@ -248,32 +241,15 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
     touchAction: 'pan-y',
   };
 
-  const handleDrag = (clientX: number, clientY: number) => {
-    const cards = document.querySelectorAll('[data-card-index]');
-    let foundIdx = -1;
-    for (let i = 0; i < cards.length; i++) {
-      const rect = cards[i].getBoundingClientRect();
-      if (
-        clientX >= rect.left &&
-        clientX <= rect.right &&
-        clientY >= rect.top &&
-        clientY <= rect.bottom
-      ) {
-        foundIdx = parseInt(cards[i].getAttribute('data-card-index') || '-1', 10);
-        break;
-      }
-    }
-    onSetHovered(foundIdx);
-  };
-
   const content = (
     <motion.div
-      style={{ width: '100%', height: '100%' }}
-      animate={{ 
-        y: isPopped ? -20 : 0, 
-        scale: isPopped ? 1.08 : 1 
+      style={{
+        width: '100%', height: '100%',
+        boxShadow: `inset 0 0 0 1px ${product.accent}30`,
+        borderRadius: 18,
       }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.95 }}
     >
       <VapeCardFace product={product} />
     </motion.div>
@@ -285,19 +261,6 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
         data-card-index={slotIndex}
         style={{ ...base, x, y, rotate, scale, opacity } as any}
         onClick={() => onCenterCard()}
-        onPointerDown={(e) => {
-          onSetHovered(slotIndex);
-          try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch(err) {}
-        }}
-        onPointerMove={(e) => {
-          if (e.pointerType !== 'mouse') handleDrag(e.clientX, e.clientY);
-        }}
-        onPointerUp={(e) => {
-          onSetHovered(-1);
-          try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch(err) {}
-        }}
-        onPointerCancel={() => onSetHovered(-1)}
-        onTouchMove={(e) => handleDrag(e.touches[0].clientX, e.touches[0].clientY)}
         onPointerEnter={(e) => e.pointerType === 'mouse' && onSetHovered(slotIndex)}
         onPointerLeave={(e) => e.pointerType === 'mouse' && onSetHovered(-1)}
       >
@@ -342,19 +305,6 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
       }}
       onAnimationComplete={() => setRevealed(true)}
       onClick={() => onCenterCard()}
-      onPointerDown={(e) => {
-        onSetHovered(slotIndex);
-        try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch(err) {}
-      }}
-      onPointerMove={(e) => {
-        if (e.pointerType !== 'mouse') handleDrag(e.clientX, e.clientY);
-      }}
-      onPointerUp={(e) => {
-        onSetHovered(-1);
-        try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch(err) {}
-      }}
-      onPointerCancel={() => onSetHovered(-1)}
-      onTouchMove={(e) => handleDrag(e.touches[0].clientX, e.touches[0].clientY)}
       onPointerEnter={(e) => e.pointerType === 'mouse' && onSetHovered(slotIndex)}
       onPointerLeave={(e) => e.pointerType === 'mouse' && onSetHovered(-1)}
     >
