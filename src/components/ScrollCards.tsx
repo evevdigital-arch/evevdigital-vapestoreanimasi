@@ -186,7 +186,8 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
   const spreadScale = isMobile ? vp.w / 1000 : 1;
   const sizeScale = isMobile ? 0.75 : 1;
 
-  const currentSlotIndex = ((slotIndex - centerIndex) % 7 + 7) % 7;
+  // Map each card to a fan slot. When centerIndex == slotIndex, this card gets slot 3 (center).
+  const currentSlotIndex = ((slotIndex - centerIndex + 3) % 7 + 7) % 7;
   const currentSlot = FAN_SLOTS[currentSlotIndex];
 
   const lp = Math.max(lockProgress, 0.05);
