@@ -3,6 +3,8 @@ import {
   useScroll,
   useTransform,
   useMotionValueEvent,
+  useMotionValue,
+  animate,
   type MotionValue,
 } from 'framer-motion';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
@@ -165,26 +167,48 @@ interface CardProps {
   revealDelay: number;
   revealDuration: number;
   onIntroDone?: () => void;
+  targetRects: any[];
+  scrollableHeight: number;
+  scrollYProgress: MotionValue<number>;
+  currentProgress: number;
+  heroRowY: number;
+  isPopped: boolean;
+  onSetHovered: (idx: number) => void;
+  centerIndex: number;
+  onCenterCard: () => void;
 }
 
-function Card({ slotIndex, clamped, scrollYProgress, lockProgress, vp, introDone, isLead, revealDelay, revealDuration, onIntroDone, targetRects, scrollableHeight, heroRowY }: CardProps & { targetRects: any[], scrollableHeight: number, scrollYProgress: MotionValue<number>, heroRowY: number }) {
-  const [hovered, setHovered] = useState(false);
+function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgress, vp, introDone, isLead, revealDelay, revealDuration, onIntroDone, targetRects, scrollableHeight, heroRowY, isPopped, onSetHovered, centerIndex, onCenterCard }: CardProps) {
   const [revealed, setRevealed] = useState(false);
   const product = PRODUCTS[slotIndex];
   const slot = FAN_SLOTS[slotIndex];
   const cas = CASCADE[slotIndex];
 
-  const isMobile = vp.w < 768;
-  const spreadScale = isMobile ? vp.w / 1000 : 1;
-  const sizeScale = isMobile ? 0.75 : 1;
+  const currentSlotIndex = (slotIndex + 3 - centerIndex + 7) % 7;
+  const currentSlot = FAN_SLOTS[currentSlotIndex];
 
   const lp = Math.max(lockProgress, 0.05);
   const p1 = lp * 0.15;
   const p2 = lp * 0.35;
   const p3 = lp * 0.65;
   
-  const s1Cx = vp.w / 2 + slot.x * spreadScale;
-  const s1Cy = heroRowY + slot.y * spreadScale;
+  const targetS1Cx = vp.w / 2 + currentSlot.x * spreadScale;
+  const targetS1Cy = heroRowY + currentSlot.y * spreadScale;
+  const targetS1Rot = currentSlot.rotate;
+  const targetS1Scale = currentSlot.scale * sizeScale;
+
+  const animS1Cx = useMotionValue(targetS1Cx);
+  const animS1Cy = useMotionValue(targetS1Cy);
+  const animS1Rot = useMotionValue(targetS1Rot);
+  const animS1Scale = useMotionValue(targetS1Scale);
+
+  useEffect(() => {
+    animate(animS1Cx, targetS1Cx, { type: 'spring', stiffness: 260, damping: 25 });
+    animate(animS1Cy, targetS1Cy, { type: 'spring', stiffness: 260, damping: 25 });
+    animate(animS1Rot, targetS1Rot, { type: 'spring', stiffness: 260, damping: 25 });
+    animate(animS1Scale, targetS1Scale, { type: 'spring', stiffness: 260, damping: 25 });
+  }, [targetS1Cx, targetS1Cy, targetS1Rot, targetS1Scale]);
+
   const stackCx = vp.w / 2, stackCy = vp.h / 2;
   
   const s2Cx = (isMobile ? vp.w * 0.1 : vp.w * 0.4) + cas.left * spreadScale + CARD_HALF;
@@ -192,14 +216,22 @@ function Card({ slotIndex, clamped, scrollYProgress, lockProgress, vp, introDone
 
   const s3Cx = targetRects && targetRects[slotIndex] ? targetRects[slotIndex].cx : s2Cx;
   const s3Cy = targetRects && targetRects[slotIndex] ? targetRects[slotIndex].cy - lockProgress * scrollableHeight : s2Cy;
-  const targetRot = targetRects && targetRects[slotIndex] ? 0 : cas.rotate;
+  const targetRotOut = targetRects && targetRects[slotIndex] ? 0 : cas.rotate;
   const targetOpacity = targetRects && targetRects[slotIndex] ? 0 : 1;
 
-  const x = useTransform(clamped, [0, p1, p2, p3, lp], [s1Cx, stackCx, s2Cx, s2Cx, s3Cx]);
-  const y = useTransform(clamped, [0, p1, p2, p3, lp], [s1Cy, stackCy, s2Cy, s2Cy, s3Cy]);
-  const rotate = useTransform(clamped, [0, p1, p2, p3, lp], [slot.rotate, 0, cas.rotate, cas.rotate, targetRot]);
-  const scale = useTransform(clamped, [0, p1, p2, lp], [slot.scale * sizeScale, 1 * sizeScale, 1 * sizeScale, 1 * sizeScale]);
-  
+  const scrollX = useTransform(clamped, [p1, p2, p3, lp], [stackCx, s2Cx, s2Cx, s3Cx]);
+  const scrollY = useTransform(clamped, [p1, p2, p3, lp], [stackCy, s2Cy, s2Cy, s3Cy]);
+  const scrollRot = useTransform(clamped, [p1, p2, p3, lp], [0, cas.rotate, cas.rotate, targetRotOut]);
+  const scrollScale = useTransform(clamped, [p1, p2, lp], [1 * sizeScale, 1 * sizeScale, 1 * sizeScale]);
+
+  const heroWeight = useTransform(clamped, [0, p1], [1, 0]);
+  const scrollWeight = useTransform(clamped, [0, p1], [0, 1]);
+
+  const x = useTransform([animS1Cx, scrollX, heroWeight, scrollWeight], ([$s1, $sc, $h, $s]) => ($s1 as number) * ($h as number) + ($sc as number) * ($s as number));
+  const y = useTransform([animS1Cy, scrollY, heroWeight, scrollWeight], ([$s1, $sc, $h, $s]) => ($s1 as number) * ($h as number) + ($sc as number) * ($s as number));
+  const rotate = useTransform([animS1Rot, scrollRot, heroWeight, scrollWeight], ([$s1, $sc, $h, $s]) => ($s1 as number) * ($h as number) + ($sc as number) * ($s as number));
+  const scale = useTransform([animS1Scale, scrollScale, heroWeight, scrollWeight], ([$s1, $sc, $h, $s]) => ($s1 as number) * ($h as number) + ($sc as number) * ($s as number));
+
   // Opacity fades out AFTER the card has fully landed (after lockProgress)
   const opacity = useTransform(scrollYProgress, [0, lp, lp + 0.03], [1, 1, targetOpacity]);
 
@@ -208,22 +240,66 @@ function Card({ slotIndex, clamped, scrollYProgress, lockProgress, vp, introDone
     width: CARD_SIZE, height: CARD_SIZE,
     borderRadius: 18, overflow: 'hidden',
     boxShadow: `0 20px 60px rgba(0,0,0,0.55), 0 0 30px ${product.accent}18`,
-    zIndex: hovered ? 30 : 7 - slotIndex,
+    zIndex: isPopped ? 30 : (currentProgress < 0.01 ? currentSlot.z : 7 - slotIndex),
     translateX: '-50%', translateY: '-50%',
     cursor: 'pointer',
     textDecoration: 'none',
     pointerEvents: 'auto',
+    touchAction: 'pan-y',
   };
 
-  const content = <VapeCardFace product={product} />;
+  const handleDrag = (clientX: number, clientY: number) => {
+    const cards = document.querySelectorAll('[data-card-index]');
+    let foundIdx = -1;
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      if (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      ) {
+        foundIdx = parseInt(cards[i].getAttribute('data-card-index') || '-1', 10);
+        break;
+      }
+    }
+    onSetHovered(foundIdx);
+  };
+
+  const content = (
+    <motion.div
+      style={{ width: '100%', height: '100%' }}
+      animate={{ 
+        y: isPopped ? -20 : 0, 
+        scale: isPopped ? 1.08 : 1 
+      }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+    >
+      <VapeCardFace product={product} />
+    </motion.div>
+  );
 
   if (introDone) {
     return (
       <motion.div
+        data-card-index={slotIndex}
         style={{ ...base, x, y, rotate, scale, opacity } as any}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        whileHover={{ scale: 1.04, transition: { duration: 0.2, ease: hoverEase } }}
+        onClick={() => onCenterCard()}
+        onPointerDown={(e) => {
+          onSetHovered(slotIndex);
+          try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch(err) {}
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType !== 'mouse') handleDrag(e.clientX, e.clientY);
+        }}
+        onPointerUp={(e) => {
+          onSetHovered(-1);
+          try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch(err) {}
+        }}
+        onPointerCancel={() => onSetHovered(-1)}
+        onTouchMove={(e) => handleDrag(e.touches[0].clientX, e.touches[0].clientY)}
+        onPointerEnter={(e) => e.pointerType === 'mouse' && onSetHovered(slotIndex)}
+        onPointerLeave={(e) => e.pointerType === 'mouse' && onSetHovered(-1)}
       >
         {content}
       </motion.div>
@@ -235,6 +311,7 @@ function Card({ slotIndex, clamped, scrollYProgress, lockProgress, vp, introDone
     const t2 = (introDuration + travelToRightDuration) / totalDuration;
     return (
       <motion.div
+        data-card-index={slotIndex}
         style={base as any}
         initial={{ x: vp.w / 2, y: vp.h / 2 + 180, rotate: 0, scale: 0.3, opacity: 0 }}
         animate={{
@@ -254,7 +331,8 @@ function Card({ slotIndex, clamped, scrollYProgress, lockProgress, vp, introDone
 
   return (
     <motion.div
-      style={{ ...base, x: s1Cx, y: s1Cy, rotate: slot.rotate, scale: slot.scale * sizeScale, opacity } as any}
+      data-card-index={slotIndex}
+      style={{ ...base, x: animS1Cx, y: animS1Cy, rotate: animS1Rot, scale: animS1Scale, opacity } as any}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{
@@ -263,9 +341,22 @@ function Card({ slotIndex, clamped, scrollYProgress, lockProgress, vp, introDone
         ease: revealed ? hoverEase : 'easeOut',
       }}
       onAnimationComplete={() => setRevealed(true)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      whileHover={{ scale: 1.04, transition: { duration: 0.2, ease: hoverEase } }}
+      onClick={() => onCenterCard()}
+      onPointerDown={(e) => {
+        onSetHovered(slotIndex);
+        try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch(err) {}
+      }}
+      onPointerMove={(e) => {
+        if (e.pointerType !== 'mouse') handleDrag(e.clientX, e.clientY);
+      }}
+      onPointerUp={(e) => {
+        onSetHovered(-1);
+        try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch(err) {}
+      }}
+      onPointerCancel={() => onSetHovered(-1)}
+      onTouchMove={(e) => handleDrag(e.touches[0].clientX, e.touches[0].clientY)}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && onSetHovered(slotIndex)}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && onSetHovered(-1)}
     >
       {content}
     </motion.div>
@@ -282,6 +373,8 @@ export default function ScrollCards({ containerRef: _ref }: ScrollCardsProps) {
   const [scrollableHeight, setScrollableHeight] = useState(2000);
   const [currentProgress, setCurrentProgress] = useState(0);
   const [heroRowY, setHeroRowY] = useState(() => Math.min(window.innerHeight * 0.5, 380));
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
+  const [centerIndex, setCenterIndex] = useState(3);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { scrollYProgress } = useScroll();
@@ -337,7 +430,11 @@ export default function ScrollCards({ containerRef: _ref }: ScrollCardsProps) {
     measure();
     const onResize = () => { setVp({ w: window.innerWidth, h: window.innerHeight }); measure(); };
     window.addEventListener('resize', onResize);
-    return () => { window.removeEventListener('resize', onResize); if (timerRef.current) clearTimeout(timerRef.current); };
+
+    return () => { 
+      window.removeEventListener('resize', onResize); 
+      if (timerRef.current) clearTimeout(timerRef.current); 
+    };
   }, [measure]);
 
   const isLocked = introDone && currentProgress >= lockProgress;
@@ -363,6 +460,11 @@ export default function ScrollCards({ containerRef: _ref }: ScrollCardsProps) {
           targetRects={targetRects || []}
           scrollableHeight={scrollableHeight}
           heroRowY={heroRowY}
+          isPopped={hoveredIndex === i}
+          onSetHovered={(idx) => setHoveredIndex(idx)}
+          centerIndex={centerIndex}
+          onCenterCard={() => setCenterIndex(i)}
+          currentProgress={currentProgress}
         />
       ))}
     </div>

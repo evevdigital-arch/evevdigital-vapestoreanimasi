@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;}
 html,body,#root{width:100%;overflow-x:hidden;background:#07070E;}
 html{scroll-behavior: smooth; scroll-padding-top: 100px;}
 @media (max-width: 768px) {

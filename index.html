@@ -5,12 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <title>evevdigital — Premium Vape Store</title>
     <style>html,body{background:#07070E;}</style>
   </head>
-  <body>
+  <body oncontextmenu="return false" ondragstart="return false" onselectstart="return false">
     <div id="root"></div>
+    <script>
+      // Anti-clone and Anti-inspect Protection
+      document.addEventListener('keydown', function(e) {
+        if(e.keyCode == 123) { e.preventDefault(); return false; }
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 73) { e.preventDefault(); return false; }
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 74) { e.preventDefault(); return false; }
+        if(e.ctrlKey && e.keyCode == 85) { e.preventDefault(); return false; }
+      });
+      // Advanced Anti-Bot / Anti-Scrape loop
+      setInterval(function() {
+        var before = new Date().getTime();
+        debugger;
+        var after = new Date().getTime();
+        if (after - before > 100) {
+          document.body.innerHTML = "Access Denied";
+        }
+      }, 1000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
     <style>
       /* ====== EVEVDIGITAL WATERMARK ====== */
