@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{width:100%;overflow-x:hidden;background:#07070E;}
+html{scroll-behavior: smooth; scroll-padding-top: 100px;}
+@media (max-width: 768px) {
+  .nav-center { display: none !important; }
+  .mobile-logo-left { position: static !important; transform: none !important; }
+  .mobile-hide-spacer { display: none !important; }
+  .nav-cta { display: none !important; }
+}
