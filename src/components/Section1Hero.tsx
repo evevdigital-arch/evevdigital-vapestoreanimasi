@@ -99,7 +99,8 @@ export default function Section1Hero() {
         alignItems: 'center', 
         paddingTop: 'clamp(100px, 15vw, 148px)',
         position: 'relative',
-        zIndex: 10 // Above the background
+        zIndex: 2, // Must be BELOW ScrollCards (zIndex: 5) so cards are clickable
+        pointerEvents: 'none', // Let clicks pass through to cards behind
       }}>
 
         {/* Eyebrow */}
