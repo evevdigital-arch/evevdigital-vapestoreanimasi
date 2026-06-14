@@ -237,8 +237,8 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
   );
 
   if (introDone) {
-    // At top of page: use animate prop for carousel effect
-    const atHero = currentProgress < p1;
+    // Use a generous threshold - hero mode when barely scrolled
+    const atHero = currentProgress < 0.05;
     
     if (atHero) {
       return (
@@ -262,11 +262,12 @@ function Card({ slotIndex, clamped, scrollYProgress, currentProgress, lockProgre
       );
     }
     
-    // Scrolling: use scroll-driven motion values
+    // Scrolling: use scroll-driven motion values (also support click)
     return (
       <motion.div
         data-card-index={slotIndex}
         style={{ ...base, x: scrollX, y: scrollY, rotate: scrollRot, scale: scrollScale, opacity, zIndex: 7 - slotIndex } as any}
+        onClick={() => onCenterCard()}
       >
         {content}
       </motion.div>
@@ -392,7 +393,7 @@ export default function ScrollCards({ containerRef: _ref }: ScrollCardsProps) {
   const isLocked = introDone && currentProgress >= lockProgress;
   const wrapperStyle: React.CSSProperties = isLocked
     ? { position: 'absolute', top: lockProgress * scrollableHeight, left: 0, width: '100%', height: vp.h, zIndex: 5, pointerEvents: 'none' }
-    : { position: 'fixed', inset: 0, zIndex: 5, pointerEvents: currentProgress < 0.01 ? 'auto' : 'none' };
+    : { position: 'fixed', inset: 0, zIndex: 5, pointerEvents: 'none' };
 
   return (
     <div style={wrapperStyle}>
